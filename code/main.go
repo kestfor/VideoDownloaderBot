@@ -15,7 +15,7 @@ func main() {
 	bot, err := tgbotapi.NewBotAPI(token)
 
 	if err != nil {
-		log.Panic(err)
+		log.Panic("cannot create bot instance")
 	}
 
 	u := tgbotapi.NewUpdate(0)
