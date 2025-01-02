@@ -2,7 +2,6 @@ package main
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 )
@@ -10,11 +9,6 @@ import (
 var apiUrl = ""
 
 func main() {
-
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
 
 	apiUrl = os.Getenv("COBALT_API_URL")
 	token := os.Getenv("BOT_TOKEN")
