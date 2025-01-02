@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  videoDownloader:
+    environment:
+
+      #cobalt instance url, detailed information: https://github.com/imputnet/cobalt/tree/main,
+      COBALT_API_URL: ""
+
+      #tg bot token
+      BOT_TOKEN: ""
+
+    build:
+      context: .
+      dockerfile: ./Dockerfile
