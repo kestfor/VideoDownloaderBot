@@ -11,8 +11,7 @@ import (
 	"videoDownloader/cobalt"
 )
 
-func downloadVideo(url string, files chan<- *os.File, group *sync.WaitGroup) {
-	defer group.Done()
+func downloadVideo(url string) *os.File {
 
 	cobaltApi := cobalt.NewCobaltInstance(apiUrl)
 
@@ -31,16 +30,16 @@ func downloadVideo(url string, files chan<- *os.File, group *sync.WaitGroup) {
 
 	if err != nil {
 		log.Println(err)
-		return
+		return nil
 	}
 
 	file, err := cobaltApi.DownLoadVideo(res)
 	if err != nil {
 		log.Println(err)
-		return
+		return nil
 	}
-	files <- file
 	log.Println(fmt.Sprintf("fetching video done, time taken: %v", time.Since(start)))
+	return file
 }
 
 func closeFile(file *os.File) {
@@ -48,34 +47,38 @@ func closeFile(file *os.File) {
 	_ = os.Remove(file.Name())
 }
 
-func sendVideos(bot *tgbotapi.BotAPI, files <-chan *os.File, msg *tgbotapi.Message, deleteOld bool) {
+func sendVideo(bot *tgbotapi.BotAPI, file *os.File, msg *tgbotapi.Message, deleteOld bool) {
 	start := time.Now()
-	for file := range files {
-		filePath := tgbotapi.FilePath(file.Name())
-		dataToSend := tgbotapi.NewVideo(msg.Chat.ID, filePath)
-		_, err := bot.Send(dataToSend)
+	filePath := tgbotapi.FilePath(file.Name())
+	dataToSend := tgbotapi.NewVideo(msg.Chat.ID, filePath)
+	dataToSend.Caption = fmt.Sprintf("отправил @%s", msg.From.UserName)
+	_, err := bot.Send(dataToSend)
 
-		if err != nil {
-			log.Println(err)
-			closeFile(file)
-			continue
-		}
-
-		if deleteOld {
-			_, _ = bot.Send(tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID))
-		}
-
-		closeFile(file)
-
+	if err != nil {
+		log.Println(err)
+		return
 	}
+
+	if deleteOld {
+		_, _ = bot.Send(tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID))
+	}
+
 	log.Println(fmt.Sprintf("sending video done, time taken: %v", time.Since(start)))
+}
+
+func processVideo(bot *tgbotapi.BotAPI, fileUrl string, message *tgbotapi.Message, group *sync.WaitGroup) {
+	defer group.Done()
+	file := downloadVideo(fileUrl)
+	if file != nil {
+		sendVideo(bot, file, message, message.Text == fileUrl)
+		closeFile(file)
+	}
 }
 
 func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	rxStrict := xurls.Strict
 	urls := rxStrict.FindAllString(message.Text, -1)
 	group := sync.WaitGroup{}
-	files := make(chan *os.File, 10)
 
 	found := make(map[string]bool)
 
@@ -87,10 +90,8 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	for url, _ := range found {
 		group.Add(1)
-		go downloadVideo(url, files, &group)
-		go sendVideos(bot, files, message, url == message.Text)
+		go processVideo(bot, url, message, &group)
 	}
 
 	group.Wait()
-	close(files)
 }
