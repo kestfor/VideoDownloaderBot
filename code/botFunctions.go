@@ -82,6 +82,11 @@ func createMediaGroup(files []*os.File, message *tgbotapi.Message, addCaption bo
 	caption := fmt.Sprintf("отправил @%s", message.From.UserName)
 	filesToSend := make([]any, 0)
 	for index, file := range files {
+		fi, err := file.Stat()
+		if err != nil || fi.Size() == 0 {
+			continue
+		}
+
 		media := tgbotapi.NewInputMediaVideo(tgbotapi.FilePath(file.Name()))
 		if index == 0 && addCaption {
 			media.Caption = caption
@@ -138,6 +143,8 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	deleteOld := messageLen == urlTotalLen
 
 	mediaGroup := createMediaGroup(files, message, deleteOld)
+	deleteOld = deleteOld && len(files) == len(mediaGroup.Media)
+
 	if !deleteOld {
 		mediaGroup.ReplyToMessageID = message.MessageID
 	}
