@@ -2,6 +2,7 @@ package main
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	botFunctionals "videoDownloader/bot"
 	"videoDownloader/subs"
 )
 
@@ -52,7 +53,7 @@ func (app *Application) GetUpdateChan() tgbotapi.UpdatesChannel {
 func (app *Application) HandleUpdate(update tgbotapi.Update) error {
 	app.NotifyObservers(update)
 	if update.Message != nil {
-		go handleMessage(app.bot, update.Message)
+		go botFunctionals.HandleMessage(app.bot, update.Message)
 	}
 	return nil
 }

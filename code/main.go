@@ -11,7 +11,6 @@ var apiUrl = ""
 func main() {
 
 	godotenv.Load()
-	apiUrl = os.Getenv("COBALT_API_URL")
 	token := os.Getenv("BOT_TOKEN")
 	app := NewApplication(token)
 	updates := app.GetUpdateChan()

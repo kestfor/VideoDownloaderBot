@@ -1,4 +1,4 @@
-package main
+package bot
 
 import (
 	"fmt"
@@ -13,6 +13,8 @@ import (
 )
 
 const URL_NUM_LIMIT = 10
+
+var apiUrl = os.Getenv("COBALT_API_URL")
 
 func downloadVideo(url string) *os.File {
 
@@ -115,7 +117,7 @@ func getMessageLen(msg string) int {
 	return getUrlsTotalLen(words)
 }
 
-func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	urls := extractUrls(message.Text)
 	uniqueUrls := getUnique(urls)
 	if len(uniqueUrls) == 0 {
