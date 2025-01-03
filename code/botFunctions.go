@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 	"videoDownloader/cobalt"
-	"videoDownloader/urlVerifier"
 )
 
 func downloadVideo(url string, files chan<- *os.File, group *sync.WaitGroup) {
@@ -54,7 +53,7 @@ func sendVideos(bot *tgbotapi.BotAPI, files <-chan *os.File, msg *tgbotapi.Messa
 	for file := range files {
 		defer closeFile(file)
 		filePath := tgbotapi.FilePath(file.Name())
-		dataToSend := tgbotapi.NewDocument(msg.Chat.ID, filePath)
+		dataToSend := tgbotapi.NewVideo(msg.Chat.ID, filePath)
 		_, err := bot.Send(dataToSend)
 
 		if err != nil {
@@ -79,11 +78,8 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 
 	for _, url := range urls {
 
-		urlType := urlVerifier.GetUrlType(url)
-		if urlType != urlVerifier.NotFound {
-			log.Println(fmt.Sprintf("found url in message %d from user %s", message.MessageID, message.From.UserName))
-			found[url] = true
-		}
+		log.Println(fmt.Sprintf("found url in message %d from user %s", message.MessageID, message.From.UserName))
+		found[url] = true
 	}
 
 	for url, _ := range found {
