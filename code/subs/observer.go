@@ -1,5 +1,5 @@
 package subs
 
 type Observer interface {
-	Update(event any)
+	Update(event any) error
 }

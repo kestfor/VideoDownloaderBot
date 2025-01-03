@@ -2,13 +2,12 @@ package main
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	botFunctionals "videoDownloader/bot"
 	"videoDownloader/subs"
 )
 
 type Application struct {
 	observers []subs.Observer
-	bot       *tgbotapi.BotAPI
+	Bot       *tgbotapi.BotAPI
 }
 
 func (app *Application) NotifyObservers(event any) {
@@ -40,20 +39,17 @@ func NewApplication(token string) *Application {
 		panic(err)
 	}
 
-	return &Application{bot: bot, observers: make([]subs.Observer, 0)}
+	return &Application{Bot: bot, observers: make([]subs.Observer, 0)}
 }
 
 func (app *Application) GetUpdateChan() tgbotapi.UpdatesChannel {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 10
-	updates := app.bot.GetUpdatesChan(u)
+	updates := app.Bot.GetUpdatesChan(u)
 	return updates
 }
 
 func (app *Application) HandleUpdate(update tgbotapi.Update) error {
 	app.NotifyObservers(update)
-	if update.Message != nil {
-		go botFunctionals.HandleMessage(app.bot, update.Message)
-	}
 	return nil
 }

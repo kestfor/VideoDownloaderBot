@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/mvdan/xurls"
@@ -14,7 +15,26 @@ import (
 
 const URL_NUM_LIMIT = 10
 
-var apiUrl = os.Getenv("COBALT_API_URL")
+var apiUrl = ""
+
+type BotDownloadService struct {
+	Bot *tgbotapi.BotAPI
+}
+
+func NewBotDownloadService(bot *tgbotapi.BotAPI, cobaltApiUrl string) *BotDownloadService {
+	apiUrl = cobaltApiUrl
+	return &BotDownloadService{Bot: bot}
+}
+
+func (b *BotDownloadService) Update(event any) error {
+	update, ok := event.(tgbotapi.Update)
+	if !ok {
+		return errors.New("can't cast event to update type")
+	} else if update.Message != nil {
+		handleMessage(b.Bot, update.Message)
+	}
+	return nil
+}
 
 func downloadVideo(url string) *os.File {
 
@@ -117,7 +137,7 @@ func getMessageLen(msg string) int {
 	return getUrlsTotalLen(words)
 }
 
-func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	urls := extractUrls(message.Text)
 	uniqueUrls := getUnique(urls)
 	if len(uniqueUrls) == 0 {
@@ -148,7 +168,7 @@ func HandleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	}
 
 	mediaGroup := createMediaGroup(files, message, onlyUrlsInMsg)
-	onlyUrlsInMsg = onlyUrlsInMsg && len(files) == len(mediaGroup.Media)
+	onlyUrlsInMsg = len(files) > 0 && onlyUrlsInMsg && len(files) == len(mediaGroup.Media)
 
 	if !onlyUrlsInMsg {
 		mediaGroup.ReplyToMessageID = message.MessageID
