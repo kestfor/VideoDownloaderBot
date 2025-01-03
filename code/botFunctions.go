@@ -51,19 +51,21 @@ func closeFile(file *os.File) {
 func sendVideos(bot *tgbotapi.BotAPI, files <-chan *os.File, msg *tgbotapi.Message, deleteOld bool) {
 	start := time.Now()
 	for file := range files {
-		defer closeFile(file)
 		filePath := tgbotapi.FilePath(file.Name())
 		dataToSend := tgbotapi.NewVideo(msg.Chat.ID, filePath)
 		_, err := bot.Send(dataToSend)
 
 		if err != nil {
 			log.Println(err)
+			closeFile(file)
 			continue
 		}
 
 		if deleteOld {
 			_, _ = bot.Send(tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID))
 		}
+
+		closeFile(file)
 
 	}
 	log.Println(fmt.Sprintf("sending video done, time taken: %v", time.Since(start)))
