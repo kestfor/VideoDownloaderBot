@@ -1,7 +1,7 @@
 package main
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
 )
@@ -10,21 +10,16 @@ var apiUrl = ""
 
 func main() {
 
+	godotenv.Load()
 	apiUrl = os.Getenv("COBALT_API_URL")
 	token := os.Getenv("BOT_TOKEN")
-	bot, err := tgbotapi.NewBotAPI(token)
-
-	if err != nil {
-		log.Panic("cannot create bot instance")
-	}
-
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 10
-	updates := bot.GetUpdatesChan(u)
+	app := NewApplication(token)
+	updates := app.GetUpdateChan()
 
 	for update := range updates {
-		if update.Message != nil {
-			go handleMessage(bot, update.Message)
+		err := app.HandleUpdate(update)
+		if err != nil {
+			log.Println(err)
 		}
 	}
 }

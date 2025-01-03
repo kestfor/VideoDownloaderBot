@@ -50,26 +50,6 @@ func closeFile(file *os.File) {
 	_ = os.Remove(file.Name())
 }
 
-//func sendVideo(bot *tgbotapi.BotAPI, file *os.File, msg *tgbotapi.Message, deleteOld bool) {
-//	start := time.Now()
-//	filePath := tgbotapi.FilePath(file.Name())
-//	dataToSend := tgbotapi.NewInputMediaVideo(filePath)
-//	tgbotapi.NewMediaGroup(msg.Chat.ID)
-//	dataToSend.Caption = fmt.Sprintf("отправил @%s", msg.From.UserName)
-//	_, err := bot.Send(dataToSend)
-//
-//	if err != nil {
-//		log.Println(err)
-//		return
-//	}
-//
-//	if deleteOld {
-//		_, _ = bot.Send(tgbotapi.NewDeleteMessage(msg.Chat.ID, msg.MessageID))
-//	}
-//
-//	log.Println(fmt.Sprintf("sending video done, time taken: %v", time.Since(start)))
-//}
-
 func processVideo(fileUrl string, group *sync.WaitGroup, files chan<- *os.File) {
 	defer group.Done()
 	file := downloadVideo(fileUrl)
@@ -97,27 +77,59 @@ func createMediaGroup(files []*os.File, message *tgbotapi.Message, addCaption bo
 	return tgbotapi.NewMediaGroup(message.Chat.ID, filesToSend)
 }
 
-func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+func extractUrls(text string) []string {
 	rxStrict := xurls.Strict
-	urls := rxStrict.FindAllString(message.Text, -1)
+	urls := rxStrict.FindAllString(text, -1)
+	return urls
+}
 
+func getUnique(data []string) []string {
 	found := make(map[string]bool)
-	urlTotalLen := 0
 
-	for index, url := range urls {
+	for index, url := range data {
 		if index >= URL_NUM_LIMIT {
 			break
 		}
-		log.Println(fmt.Sprintf("found url in message %d from user @%s", message.MessageID, message.From.UserName))
-		urlTotalLen += len(url)
 		found[url] = true
 	}
 
+	res := make([]string, 0, len(found))
+	for url, _ := range found {
+		res = append(res, url)
+	}
+
+	return res
+}
+
+func getUrlsTotalLen(urls []string) int {
+	res := 0
+	for _, url := range urls {
+		res += len(url)
+	}
+	return res
+}
+
+func getMessageLen(msg string) int {
+	r, _ := regexp.Compile(`\S+`)
+	words := r.FindAllString(msg, -1)
+	return getUrlsTotalLen(words)
+}
+
+func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
+	urls := extractUrls(message.Text)
+	uniqueUrls := getUnique(urls)
+	if len(uniqueUrls) == 0 {
+		return
+	}
+	onlyUrlsInMsg := getMessageLen(message.Text) == getUrlsTotalLen(urls)
+
+	log.Println(fmt.Sprintf("found %d urls in message %d by @%s", len(uniqueUrls), message.MessageID, message.From.UserName))
+
 	//create tasks for downloading extracted videos
 	group := sync.WaitGroup{}
-	filesChan := make(chan *os.File, len(found))
+	filesChan := make(chan *os.File, len(uniqueUrls))
 
-	for url, _ := range found {
+	for _, url := range uniqueUrls {
 		group.Add(1)
 		go processVideo(url, &group, filesChan)
 	}
@@ -133,25 +145,16 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 		files = append(files, file)
 	}
 
-	r, _ := regexp.Compile(`\S+`)
-	words := r.FindAllString(message.Text, -1)
-	messageLen := 0
-	for _, word := range words {
-		messageLen += len(word)
-	}
+	mediaGroup := createMediaGroup(files, message, onlyUrlsInMsg)
+	onlyUrlsInMsg = onlyUrlsInMsg && len(files) == len(mediaGroup.Media)
 
-	deleteOld := messageLen == urlTotalLen
-
-	mediaGroup := createMediaGroup(files, message, deleteOld)
-	deleteOld = deleteOld && len(files) == len(mediaGroup.Media)
-
-	if !deleteOld {
+	if !onlyUrlsInMsg {
 		mediaGroup.ReplyToMessageID = message.MessageID
 	}
 	_, _ = bot.Send(mediaGroup)
 
 	//delete old message if it only contains links
-	if deleteOld {
+	if onlyUrlsInMsg {
 		_, _ = bot.Send(tgbotapi.NewDeleteMessage(message.Chat.ID, message.MessageID))
 	}
 
