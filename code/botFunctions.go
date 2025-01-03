@@ -58,6 +58,7 @@ func sendVideos(bot *tgbotapi.BotAPI, files <-chan *os.File, msg *tgbotapi.Messa
 
 		if err != nil {
 			log.Println(err)
+			continue
 		}
 
 		if deleteOld {
