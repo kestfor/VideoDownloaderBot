@@ -105,6 +105,8 @@ func extractUrls(text string) []string {
 	return urls
 }
 
+// returns only first 10 urls via tg maximum media-group size
+// TODO create logic for sending files in multiple media-groups
 func getUnique(data []string) []string {
 	found := make(map[string]bool)
 
