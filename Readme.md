@@ -1,6 +1,6 @@
 # VideoDownloaderBot
 
-This repository is a simple source code for tg bot, that listens on messages in chats, detects urls and replace this messages with video files
+This repository is a simple source code for tg bot, that listens on messages in chats, detects urls and replace these messages with video files
 
 
 - Third-party API is used to download videos: https://github.com/imputnet/cobalt
