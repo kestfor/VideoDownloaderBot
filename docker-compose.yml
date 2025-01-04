@@ -3,7 +3,8 @@ services:
     environment:
 
       #cobalt instance url, detailed information: https://github.com/imputnet/cobalt/tree/main,
-      COBALT_API_URL: ""
+      #you can use docker-container name or real ip address
+      COBALT_API_URL: "http://cobalt-api:9000/"
 
       #tg bot token
       BOT_TOKEN: ""
