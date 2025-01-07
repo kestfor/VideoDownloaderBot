@@ -13,7 +13,7 @@ services:
       context: .
       dockerfile: ./Dockerfile
 
-    restart: on-failure
+    restart: always
 
   cobalt-api:
     image: ghcr.io/imputnet/cobalt:10
