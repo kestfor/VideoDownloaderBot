@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -175,7 +176,13 @@ func handleMessage(bot *tgbotapi.BotAPI, message *tgbotapi.Message) {
 	if !onlyUrlsInMsg {
 		mediaGroup.ReplyToMessageID = message.MessageID
 	}
-	_, _ = bot.Send(mediaGroup)
+
+	for _ = range 5 {
+		_, err := bot.SendMediaGroup(mediaGroup)
+		if err == nil || errors.Is(err, &json.InvalidUnmarshalError{}) {
+			break
+		}
+	}
 
 	//delete old message if it only contains links
 	if onlyUrlsInMsg {
